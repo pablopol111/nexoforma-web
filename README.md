@@ -1,13 +1,16 @@
 # NexoForma Web
 
-Proyecto base en Vite + React + Tailwind CSS v4.
+Proyecto completo listo para subir a GitHub y desplegar en Vercel.
 
-## Qué falta
-Solo tienes que crear o pegar tu archivo:
+## Qué incluye esta versión
+- Acceso por token
+- Gestión de cliente local
+- Hasta 5 perfiles
+- Registro de peso, pasos y comentario
+- Gráficas con Recharts
+- Exportación de informe Word compatible en .doc
 
-- `src/App.jsx`
-
-## Arranque local
+## Ejecución local
 ```bash
 npm install
 npm run dev
@@ -19,7 +22,16 @@ npm run build
 ```
 
 ## Publicación en Vercel
-- Sube estos archivos a GitHub
-- Añade también `src/App.jsx`
+- Sube todos los archivos a GitHub
 - Importa el repositorio en Vercel
-- Vercel detectará Vite automáticamente
+- Preset: Vite
+- Build command: npm run build
+- Output directory: dist
+
+## Cómo actualizar la web
+- Edita los archivos en GitHub
+- Pulsa Commit changes
+- Vercel redepliega automáticamente
+
+## Nota importante
+Esta versión sigue siendo frontend con almacenamiento local. Para venderla como SaaS a nutricionistas con panel administrador real, hace falta backend, base de datos y permisos por rol.
