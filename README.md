@@ -1,37 +1,22 @@
-# NexoForma Web
+# NexoForma v1.0.0
 
-Proyecto completo listo para subir a GitHub y desplegar en Vercel.
+Proyecto web completo listo para GitHub y Vercel.
 
-## Qué incluye esta versión
-- Acceso por token
-- Gestión de cliente local
-- Hasta 5 perfiles
-- Registro de peso, pasos y comentario
-- Gráficas con Recharts
-- Exportación de informe Word compatible en .doc
+## Qué incluye
+- Panel administrador con token `NXF-ADMIN-ROOT`
+- Alta de nutricionistas con asignación de tokens
+- Panel profesional con perfiles, registros, gráfica y exportación Word
+- Versión visible en pantalla: `v1.0.0`
 
-## Ejecución local
-```bash
-npm install
-npm run dev
-```
+## Cómo actualizar tu repositorio
+1. Descarga y descomprime este paquete.
+2. Sustituye los archivos de tu repositorio por estos.
+3. Haz commit en GitHub.
+4. Vercel redeplegará automáticamente.
 
-## Build
-```bash
-npm run build
-```
-
-## Publicación en Vercel
-- Sube todos los archivos a GitHub
-- Importa el repositorio en Vercel
-- Preset: Vite
-- Build command: npm run build
-- Output directory: dist
-
-## Cómo actualizar la web
-- Edita los archivos en GitHub
-- Pulsa Commit changes
-- Vercel redepliega automáticamente
-
-## Nota importante
-Esta versión sigue siendo frontend con almacenamiento local. Para venderla como SaaS a nutricionistas con panel administrador real, hace falta backend, base de datos y permisos por rol.
+## Archivos clave
+- `src/App.jsx`
+- `src/main.jsx`
+- `src/index.css`
+- `package.json`
+- `vite.config.js`
