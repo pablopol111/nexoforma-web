@@ -10,17 +10,19 @@ import {
   Legend,
 } from "recharts";
 import {
-  Download,
+  Plus,
   LogOut,
+  Download,
   Pencil,
   Trash2,
   UserPlus,
-  Settings,
-  Save,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 
-const APP_NAME = "NexoForma";
-const STORAGE_KEY = "nexoforma_web_state_v2";
+const APP_NAME = "NexoForma Web";
+const STORAGE_KEY = "nexoforma_web_state_v1";
 const MAX_PROFILES = 5;
 const TOKENS = [
   "NXF-A7K2-Q9M4",
@@ -77,18 +79,6 @@ function saveState(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function sanitizeHtml(text) {
-  return String(text || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function formatDateTimeES() {
-  return new Date().toLocaleString("es-ES");
-}
-
 function Logo({ className = "w-10 h-10" }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
@@ -115,10 +105,10 @@ function defaultProfile(index = 1) {
   };
 }
 
-function defaultClient(token) {
+function defaultClient(token, name) {
   return {
     token,
-    clientName: "Cliente sin configurar",
+    clientName: name,
     createdAt: new Date().toISOString(),
     profiles: [defaultProfile(1)],
   };
@@ -169,13 +159,6 @@ function aggregateEntries(entries, groupBy) {
     comments: items.map((x) => x.comment).filter(Boolean),
     count: items.length,
   }));
-}
-
-function buildWeekAverageMap(entries) {
-  const weeks = aggregateEntries(entries, "Semana");
-  const map = new Map();
-  for (const item of weeks) map.set(item.label, item);
-  return map;
 }
 
 function bodyEstimate(weight, heightCm) {
@@ -238,6 +221,14 @@ function deltaColor(delta) {
   return "text-slate-300";
 }
 
+function sanitizeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function buildChartSvg(series, metricMode, referenceWeight, targetWeight) {
   const width = 820;
   const height = 300;
@@ -268,20 +259,8 @@ function buildChartSvg(series, metricMode, referenceWeight, targetWeight) {
 
   const poly = (vals, yFn) => vals.map((v, i) => `${x(i)},${yFn(v)}`).join(" ");
 
-  const labels = series
-    .map(
-      (s, i) =>
-        `<text x="${x(i)}" y="${height - 14}" text-anchor="middle" fill="#475569" font-size="10">${sanitizeHtml(
-          s.label
-        )}</text>`
-    )
-    .join("");
-  const verticals = series
-    .map(
-      (_, i) =>
-        `<line x1="${x(i)}" y1="${pad}" x2="${x(i)}" y2="${height - pad}" stroke="#e2e8f0" stroke-width="1" opacity="0.35"/>`
-    )
-    .join("");
+  const labels = series.map((s, i) => `<text x="${x(i)}" y="${height - 14}" text-anchor="middle" fill="#475569" font-size="10">${sanitizeHtml(s.label)}</text>`).join("");
+  const verticals = series.map((_, i) => `<line x1="${x(i)}" y1="${pad}" x2="${x(i)}" y2="${height - pad}" stroke="#e2e8f0" stroke-width="1" opacity="0.35"/>`).join("");
 
   const weightLayer = `
     <polyline fill="none" stroke="#0ea5e9" stroke-width="3" points="${poly(weights, yWeight)}"/>
@@ -294,22 +273,14 @@ function buildChartSvg(series, metricMode, referenceWeight, targetWeight) {
   `;
 
   const refs = [
-    referenceWeight
-      ? `<line x1="${pad}" y1="${yWeight(referenceWeight)}" x2="${width - pad}" y2="${yWeight(
-          referenceWeight
-        )}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"/>`
-      : "",
-    targetWeight
-      ? `<line x1="${pad}" y1="${yWeight(targetWeight)}" x2="${width - pad}" y2="${yWeight(
-          targetWeight
-        )}" stroke="#22c55e" stroke-width="2" stroke-dasharray="2 4"/>`
-      : "",
+    referenceWeight ? `<line x1="${pad}" y1="${yWeight(referenceWeight)}" x2="${width - pad}" y2="${yWeight(referenceWeight)}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"/>` : "",
+    targetWeight ? `<line x1="${pad}" y1="${yWeight(targetWeight)}" x2="${width - pad}" y2="${yWeight(targetWeight)}" stroke="#22c55e" stroke-width="2" stroke-dasharray="2 4"/>` : "",
   ].join("");
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <rect width="100%" height="100%" fill="#ffffff" rx="12"/>
-      <text x="24" y="24" fill="#0f172a" font-size="18" font-weight="700">Gráfica de evolución</text>
+      <text x="24" y="24" fill="#0f172a" font-size="18" font-weight="700">Evolución</text>
       <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#94a3b8" stroke-width="1.5"/>
       <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" stroke="#94a3b8" stroke-width="1.5"/>
       ${verticals}
@@ -317,7 +288,8 @@ function buildChartSvg(series, metricMode, referenceWeight, targetWeight) {
       ${metricMode !== "Pasos" ? weightLayer : ""}
       ${metricMode !== "Peso" ? stepsLayer : ""}
       ${labels}
-      ${metricMode !== "Pasos" ? `<rect x="540" y="14" width="14" height="14" fill="#0ea5e9" rx="3"/><text x="562" y="26" fill="#334155" font-size="12">Peso</text>` : ""}
+      <rect x="540" y="14" width="14" height="14" fill="#0ea5e9" rx="3"/>
+      ${metricMode !== "Pasos" ? `<text x="562" y="26" fill="#334155" font-size="12">Peso</text>` : ""}
       ${metricMode === "Ambos" ? `<rect x="622" y="14" width="14" height="14" fill="#22c55e" rx="3"/><text x="644" y="26" fill="#334155" font-size="12">Pasos</text>` : ""}
     </svg>
   `;
@@ -334,12 +306,8 @@ function BodyVisual({ currentWeight, targetWeight, heightCm }) {
     const hipW = torsoW * 1.02;
     return (
       <g transform={`translate(${x},0)`}>
-        <text x="0" y="25" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">
-          {title}
-        </text>
-        <text x="0" y="45" textAnchor="middle" fill="#94a3b8" fontSize="11">
-          {subtitle}
-        </text>
+        <text x="0" y="25" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">{title}</text>
+        <text x="0" y="45" textAnchor="middle" fill="#94a3b8" fontSize="11">{subtitle}</text>
         <circle cx="0" cy="80" r="18" fill={color} />
         <path d={`M ${-shoulderW / 2} 108 L ${shoulderW / 2} 108 L ${torsoW / 2} 180 L ${-torsoW / 2} 180 Z`} fill={color} />
         <line x1={-shoulderW / 2 + 4} y1="112" x2={-shoulderW / 2 - 14} y2="152" stroke={color} strokeWidth="10" />
@@ -354,24 +322,12 @@ function BodyVisual({ currentWeight, targetWeight, heightCm }) {
     <div className="rounded-2xl border border-slate-700 bg-slate-950/40 p-4 overflow-x-auto">
       <div className="mb-3 text-sm text-slate-400">Comparativa visual simple entre estado actual y objetivo</div>
       <svg viewBox="0 0 720 270" className="w-full min-w-[680px] h-[240px]">
-        {drawBody(
-          180,
-          "#38bdf8",
-          current?.bmi || 22,
-          "Estado actual",
-          current ? `${currentWeight?.toFixed(2)} kg · IMC ${current.bmi}` : "Sin datos"
-        )}
-        {target ? (
-          drawBody(540, "#22c55e", target.bmi, "Objetivo", `${targetWeight?.toFixed(2)} kg · IMC ${target.bmi}`)
-        ) : (
-          <text x="540" y="120" textAnchor="middle" fill="#94a3b8" fontSize="14">
-            Sin objetivo configurado
-          </text>
-        )}
+        {drawBody(180, "#38bdf8", current?.bmi || 22, "Estado actual", current ? `${currentWeight?.toFixed(2)} kg · IMC ${current.bmi}` : "Sin datos")}
+        {target
+          ? drawBody(540, "#22c55e", target.bmi, "Objetivo", `${targetWeight?.toFixed(2)} kg · IMC ${target.bmi}`)
+          : <text x="540" y="120" textAnchor="middle" fill="#94a3b8" fontSize="14">Sin objetivo configurado</text>}
         <line x1="260" y1="120" x2="460" y2="120" stroke="#475569" strokeWidth="3" markerEnd="url(#arrowHead)" />
-        <text x="360" y="102" textAnchor="middle" fill="#94a3b8" fontSize="12">
-          Dirección estimada de progreso
-        </text>
+        <text x="360" y="102" textAnchor="middle" fill="#94a3b8" fontSize="12">Dirección estimada de progreso</text>
         <defs>
           <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
             <polygon points="0 0, 10 3, 0 6" fill="#475569" />
@@ -392,18 +348,10 @@ function StatCard({ title, value, detail, colorClass = "text-slate-100" }) {
   );
 }
 
-function Field({ label, children }) {
-  return (
-    <div>
-      <label className="block text-sm font-semibold text-slate-300 mb-2">{label}</label>
-      {children}
-    </div>
-  );
-}
-
 function App() {
   const [state, setState] = useState(loadState);
   const [tokenInput, setTokenInput] = useState(loadState().lastToken || "");
+  const [clientNameInput, setClientNameInput] = useState("");
   const [activeToken, setActiveToken] = useState(loadState().lastToken || "");
   const [activeProfileId, setActiveProfileId] = useState("");
   const [message, setMessage] = useState("");
@@ -413,8 +361,6 @@ function App() {
   const [exportScope, setExportScope] = useState("Perfil actual");
   const [profileEdit, setProfileEdit] = useState(false);
   const [editingEntryDate, setEditingEntryDate] = useState("");
-  const [clientEditName, setClientEditName] = useState("");
-  const [clientEditMode, setClientEditMode] = useState(false);
 
   useEffect(() => {
     saveState(state);
@@ -430,37 +376,20 @@ function App() {
     }
   }, [activeProfileId, profiles]);
 
-  useEffect(() => {
-    if (currentClient) {
-      setClientEditName(currentClient.clientName || "");
-    }
-  }, [currentClient]);
-
   const latest = useMemo(() => (currentProfile ? getLatest(currentProfile.entries) : null), [currentProfile]);
   const sortedEntriesMemo = useMemo(() => (currentProfile ? sortEntries(currentProfile.entries) : []), [currentProfile]);
   const latestIndex = sortedEntriesMemo.length - 1;
   const prev = latestIndex > 0 ? sortedEntriesMemo[latestIndex - 1] : null;
   const latestWeight = latest ? parseNum(latest.weight) : 0;
   const latestSteps = latest ? parseNum(latest.steps) : 0;
-  const refDelta =
-    currentProfile && currentProfile.referenceWeight > 0 && latest
-      ? latestWeight - parseNum(currentProfile.referenceWeight)
-      : null;
-  const targetDelta =
-    currentProfile && currentProfile.targetWeight > 0 && latest
-      ? latestWeight - parseNum(currentProfile.targetWeight)
-      : null;
+  const refDelta = currentProfile && currentProfile.referenceWeight > 0 && latest ? latestWeight - parseNum(currentProfile.referenceWeight) : null;
+  const targetDelta = currentProfile && currentProfile.targetWeight > 0 && latest ? latestWeight - parseNum(currentProfile.targetWeight) : null;
   const prevDelta = latest && prev ? latestWeight - parseNum(prev.weight) : null;
   const weekly = useMemo(() => (currentProfile ? aggregateEntries(currentProfile.entries, "Semana") : []), [currentProfile]);
-  const chartData = useMemo(
-    () => (currentProfile ? aggregateEntries(currentProfile.entries, chartGroupBy) : []),
-    [currentProfile, chartGroupBy]
-  );
+  const chartData = useMemo(() => (currentProfile ? aggregateEntries(currentProfile.entries, chartGroupBy) : []), [currentProfile, chartGroupBy]);
   const currentWeek = weekly.length ? weekly[weekly.length - 1] : null;
   const bodyInfo = currentProfile ? bodyEstimate(latestWeight, parseNum(currentProfile.heightCm)) : null;
-  const targetBodyInfo = currentProfile
-    ? bodyEstimate(parseNum(currentProfile.targetWeight), parseNum(currentProfile.heightCm))
-    : null;
+  const targetBodyInfo = currentProfile ? bodyEstimate(parseNum(currentProfile.targetWeight), parseNum(currentProfile.heightCm)) : null;
   const progress = currentProfile ? progressToTarget(currentProfile.entries, parseNum(currentProfile.targetWeight)) : null;
 
   function updateState(updater) {
@@ -479,43 +408,25 @@ function App() {
 
     updateState((prev) => {
       const next = { ...prev, clients: { ...prev.clients }, lastToken: token };
-      if (!next.clients[token]) next.clients[token] = defaultClient(token);
+      if (!next.clients[token]) {
+        if (!clientNameInput.trim()) {
+          setMessage("Este token no está inicializado. Indica el nombre del cliente.");
+          return prev;
+        }
+        next.clients[token] = defaultClient(token, clientNameInput.trim());
+      }
       return next;
     });
 
     setActiveToken(token);
     setMessage("");
     setProfileEdit(false);
-    setClientEditMode(false);
   }
 
   function logout() {
     setActiveToken("");
     setActiveProfileId("");
     setProfileEdit(false);
-    setClientEditMode(false);
-  }
-
-  function saveClientName() {
-    if (!currentClient) return;
-    const clean = clientEditName.trim();
-    if (!clean) {
-      setMessage("Introduce un nombre de cliente válido.");
-      return;
-    }
-
-    updateState((prev) => ({
-      ...prev,
-      clients: {
-        ...prev.clients,
-        [activeToken]: {
-          ...prev.clients[activeToken],
-          clientName: clean,
-        },
-      },
-    }));
-    setClientEditMode(false);
-    setMessage("");
   }
 
   function patchProfile(profileId, patch) {
@@ -634,13 +545,7 @@ function App() {
   function exportWord() {
     if (!currentClient) return;
 
-    const selectedProfiles =
-      exportScope === "Todos los perfiles"
-        ? currentClient.profiles
-        : currentProfile
-        ? [currentProfile]
-        : [];
-
+    const selectedProfiles = exportScope === "Todos los perfiles" ? currentClient.profiles : currentProfile ? [currentProfile] : [];
     if (!selectedProfiles.length) {
       setMessage("No hay perfiles para exportar.");
       return;
@@ -652,121 +557,43 @@ function App() {
         const latestRow = getLatest(profile.entries);
         const latestWeightProfile = latestRow ? parseNum(latestRow.weight) : 0;
         const info = bodyEstimate(latestWeightProfile, parseNum(profile.heightCm));
-        const targetInfo = bodyEstimate(parseNum(profile.targetWeight), parseNum(profile.heightCm));
+        const tInfo = bodyEstimate(parseNum(profile.targetWeight), parseNum(profile.heightCm));
         const prog = progressToTarget(profile.entries, parseNum(profile.targetWeight));
-        const weekMap = buildWeekAverageMap(profile.entries);
         const series = aggregateEntries(profile.entries, chartGroupBy);
-        const chartSvg = buildChartSvg(
-          series,
-          chartMetric,
-          parseNum(profile.referenceWeight),
-          parseNum(profile.targetWeight)
-        );
+        const chartSvg = buildChartSvg(series, chartMetric, parseNum(profile.referenceWeight), parseNum(profile.targetWeight));
         const chartDataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(chartSvg)}`;
-        const comments = rows
-          .map((r) => r.comment)
-          .filter(Boolean)
-          .map((c) => sanitizeHtml(c));
 
-        const currentWeekSummary =
-          latestRow && weekMap.get(weekStart(latestRow.date))
-            ? weekMap.get(weekStart(latestRow.date))
-            : null;
-
-        const historyRows = rows
-          .slice()
-          .reverse()
-          .map((r) => {
-            const weekInfo = weekMap.get(weekStart(r.date));
-            return `
+        const tableRows = rows
+          .map(
+            (r) => `
               <tr>
-                <td style="border:1px solid #cbd5e1;padding:10px;">${sanitizeHtml(r.date)}</td>
-                <td style="border:1px solid #cbd5e1;padding:10px;">${sanitizeHtml(Number(r.weight).toFixed(2))} kg</td>
-                <td style="border:1px solid #cbd5e1;padding:10px;">${sanitizeHtml(r.steps)}</td>
-                <td style="border:1px solid #cbd5e1;padding:10px;">${weekInfo ? sanitizeHtml(
-                  Number(weekInfo.weight).toFixed(2)
-                ) + " kg" : "-"}</td>
-                <td style="border:1px solid #cbd5e1;padding:10px;">${weekInfo ? sanitizeHtml(String(weekInfo.steps)) : "-"}</td>
-              </tr>
-            `;
-          })
+                <td>${sanitizeHtml(r.date)}</td>
+                <td>${sanitizeHtml(Number(r.weight).toFixed(2))} kg</td>
+                <td>${sanitizeHtml(r.steps)}</td>
+                <td>${sanitizeHtml(r.comment || "-")}</td>
+              </tr>`
+          )
           .join("");
 
         return `
-          <h2 style="margin-top:28px;margin-bottom:16px;color:#0f172a;">${sanitizeHtml(profile.name)}</h2>
-
-          <table style="width:100%;border-collapse:collapse;margin-bottom:22px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Concepto</th>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Peso de referencia</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                profile.referenceWeight ? Number(profile.referenceWeight).toFixed(2) + " kg" : "-"
-              }</td></tr>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Peso objetivo</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                profile.targetWeight ? Number(profile.targetWeight).toFixed(2) + " kg" : "-"
-              }</td></tr>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Altura</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                profile.heightCm ? profile.heightCm + " cm" : "-"
-              }</td></tr>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Último peso</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                latestRow ? Number(latestRow.weight).toFixed(2) + " kg" : "-"
-              }</td></tr>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Últimos pasos</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                latestRow ? latestRow.steps : "-"
-              }</td></tr>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Media semanal de peso</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                currentWeekSummary ? Number(currentWeekSummary.weight).toFixed(2) + " kg" : "-"
-              }</td></tr>
-              <tr><td style="border:1px solid #cbd5e1;padding:10px;">Media semanal de pasos</td><td style="border:1px solid #cbd5e1;padding:10px;">${
-                currentWeekSummary ? currentWeekSummary.steps : "-"
-              }</td></tr>
-            </tbody>
-          </table>
-
-          <h3 style="margin-top:18px;color:#334155;">Lectura corporal y progreso</h3>
-          <p style="line-height:1.7;">
-            Estado actual: ${
-              info
-                ? `${latestWeightProfile.toFixed(2)} kg con IMC ${info.bmi} (${info.category} · ${info.physique}).`
-                : "Sin datos suficientes."
-            }<br/>
-            Objetivo configurado: ${
-              targetInfo
-                ? `${Number(profile.targetWeight).toFixed(2)} kg con IMC estimado ${targetInfo.bmi} (${targetInfo.category} · ${targetInfo.physique}).`
-                : "Sin objetivo configurado."
-            }<br/>
-            Progreso estimado: ${
-              prog === null ? "Sin cálculo." : `${prog}% del recorrido objetivo completado.`
-            }
-          </p>
-
-          <h3 style="margin-top:18px;color:#334155;">Gráfica de evolución</h3>
+          <h2>${sanitizeHtml(profile.name)}</h2>
+          <p><strong>Referencia:</strong> ${profile.referenceWeight || "-"} kg &nbsp; | &nbsp; <strong>Objetivo:</strong> ${profile.targetWeight || "-"} kg &nbsp; | &nbsp; <strong>Altura:</strong> ${profile.heightCm || "-"} cm</p>
+          <p><strong>Estado actual:</strong> ${latestRow ? `${Number(latestRow.weight).toFixed(2)} kg` : "Sin datos"}</p>
+          <p><strong>Comentario corporal:</strong> ${info ? `${info.category} · ${info.physique} · IMC ${info.bmi}` : "Sin datos suficientes"}</p>
+          <p><strong>Objetivo estimado:</strong> ${tInfo ? `${tInfo.category} · ${tInfo.physique} · IMC ${tInfo.bmi}` : "Sin objetivo"}</p>
+          <p><strong>Progreso estimado:</strong> ${prog === null ? "Sin cálculo" : `${prog}%`}</p>
           <img src="${chartDataUri}" style="width:100%;max-width:820px;border:1px solid #cbd5e1;border-radius:12px;" />
-
-          <h3 style="margin-top:18px;color:#334155;">Comentarios</h3>
-          <p style="line-height:1.7;">${
-            comments.length ? comments.join("<br/>") : "No se han añadido comentarios para este perfil."
-          }</p>
-
-          <h3 style="margin-top:18px;color:#334155;">Últimos registros</h3>
-          <table style="width:100%;border-collapse:collapse;">
+          <h3>Histórico</h3>
+          <table>
             <thead>
               <tr>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Fecha</th>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Peso</th>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Pasos</th>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Media peso</th>
-                <th style="text-align:left;border:1px solid #cbd5e1;padding:10px;background:#e2e8f0;">Media pasos</th>
+                <th>Fecha</th>
+                <th>Peso</th>
+                <th>Pasos</th>
+                <th>Comentario</th>
               </tr>
             </thead>
-            <tbody>${
-              historyRows ||
-              `<tr><td colspan="5" style="border:1px solid #cbd5e1;padding:10px;">Sin datos</td></tr>`
-            }</tbody>
+            <tbody>${tableRows || `<tr><td colspan="4">Sin datos</td></tr>`}</tbody>
           </table>
         `;
       })
@@ -778,19 +605,23 @@ function App() {
           <meta charset="utf-8" />
           <title>Informe NexoForma</title>
           <style>
-            body { font-family: Arial, sans-serif; color: #0f172a; padding: 28px; }
-            h1 { color: #0f172a; margin-bottom: 6px; }
-            h2 { color: #0f172a; }
-            h3 { color: #334155; }
-            p { line-height: 1.6; }
+            body { font-family: Arial, sans-serif; color: #0f172a; padding: 24px; }
+            h1 { color: #0f172a; }
+            h2 { color: #0f172a; margin-top: 28px; }
+            h3 { color: #334155; margin-top: 18px; }
+            table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+            th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+            th { background: #e2e8f0; }
+            p { line-height: 1.55; }
           </style>
         </head>
         <body>
-          <h1>NexoForma</h1>
-          <p><strong>Informe estructurado de evolución</strong></p>
-          <p><strong>Cliente:</strong> ${sanitizeHtml(currentClient.clientName)}<br/>
-          <strong>Token:</strong> ${sanitizeHtml(currentClient.token)}<br/>
-          <strong>Fecha de generación:</strong> ${sanitizeHtml(formatDateTimeES())}</p>
+          <h1>NexoForma · Informe estructurado</h1>
+          <p><strong>Cliente:</strong> ${sanitizeHtml(currentClient.clientName)}</p>
+          <p><strong>Token:</strong> ${sanitizeHtml(currentClient.token)}</p>
+          <p><strong>Ámbito:</strong> ${sanitizeHtml(exportScope)}</p>
+          <p><strong>Agrupación de gráfica:</strong> ${sanitizeHtml(chartGroupBy)}</p>
+          <p><strong>Modo de gráfica:</strong> ${sanitizeHtml(chartMetric)}</p>
           ${sections}
         </body>
       </html>
@@ -807,7 +638,7 @@ function App() {
     URL.revokeObjectURL(url);
   }
 
-  if (!activeToken) {
+  if (!activeToken || !currentClient) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
         <div className="mx-auto max-w-6xl grid lg:grid-cols-2 gap-8 items-stretch">
@@ -816,12 +647,7 @@ function App() {
               <Logo className="w-14 h-14" />
               <div>
                 <h1 className="text-4xl font-bold tracking-tight">{APP_NAME}</h1>
-                <p className="mt-1 text-slate-400">
-                  Bienvenido a NexoForma, tu espacio para seguir de forma clara el peso, la actividad y la evolución corporal.
-                </p>
-                <p className="mt-2 text-sm text-sky-300">
-                  Cada registro cuenta. La constancia de hoy construye el resultado de mañana.
-                </p>
+                <p className="mt-1 text-slate-400">Seguimiento de peso, actividad y progreso corporal en formato web.</p>
               </div>
             </div>
 
@@ -836,27 +662,42 @@ function App() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-slate-300 mb-2">Nombre del cliente si el token es nuevo</label>
+                <input
+                  value={clientNameInput}
+                  onChange={(e) => setClientNameInput(e.target.value)}
+                  placeholder="Ej. Pablo"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-sky-400"
+                />
+              </div>
+
               <button
                 onClick={login}
                 className="w-full rounded-2xl bg-sky-500 px-4 py-3 font-semibold text-white transition hover:bg-sky-400"
               >
-                Acceder
+                Entrar
               </button>
 
-              {message && (
-                <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                  {message}
-                </div>
-              )}
+              {message && <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div>}
             </div>
           </div>
 
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold">Qué te ofrece NexoForma</h2>
+            <h2 className="text-2xl font-bold">Cambios necesarios para pasar de escritorio a web</h2>
             <div className="mt-6 space-y-4 text-slate-300 text-sm leading-6">
-              <p>Controla peso, pasos, comentarios diarios y evolución visual desde una única pantalla.</p>
-              <p>Genera un informe estructurado con resumen, lectura corporal, gráfica, comentarios y registros.</p>
-              <p>Tras acceder con tu token podrás configurar el cliente dentro de la aplicación y trabajar con hasta cinco perfiles.</p>
+              <p>Esta versión ya es usable en navegador y guarda los datos en <strong>localStorage</strong>.</p>
+              <p>Para una versión compartida por clientes reales, haría falta <strong>backend</strong> para validar tokens, guardar datos centralmente y controlar accesos.</p>
+              <p>En web no existe una forma real de ocultar por completo la lógica del cliente. La validación sensible debe vivir en servidor.</p>
+              <p>La exportación actual genera un <strong>Word compatible</strong> en formato <code>.doc</code> con tablas, comentarios y gráfica.</p>
+            </div>
+
+            <div className="mt-8 grid sm:grid-cols-2 gap-4">
+              {TOKENS.slice(0, 6).map((token) => (
+                <div key={token} className="rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-300">
+                  {token}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -871,19 +712,13 @@ function App() {
           <div className="flex items-center gap-4">
             <Logo className="w-12 h-12" />
             <div>
-              <div className="text-3xl font-bold">{APP_NAME}</div>
-              <div className="text-sm text-slate-400">Cliente activo: {currentClient?.clientName}</div>
-              <div className="text-xs text-slate-500">Máximo {MAX_PROFILES} perfiles</div>
+              <div className="text-3xl font-bold">NexoForma</div>
+              <div className="text-sm text-slate-400">Cliente activo: {currentClient.clientName}</div>
+              <div className="text-xs text-slate-500">Token: {currentClient.token} | Máximo {MAX_PROFILES} perfiles</div>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setClientEditMode((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-700"
-            >
-              <Settings className="w-4 h-4" /> Configurar cliente
-            </button>
             <button
               onClick={addProfile}
               disabled={profiles.length >= MAX_PROFILES}
@@ -908,32 +743,7 @@ function App() {
       </div>
 
       <div className="mx-auto max-w-[1700px] px-4 md:px-6 py-6 space-y-6">
-        {message && (
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-            {message}
-          </div>
-        )}
-
-        {clientEditMode && (
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
-            <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-semibold text-slate-300 mb-2">Nombre del cliente</label>
-                <input
-                  value={clientEditName}
-                  onChange={(e) => setClientEditName(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-sky-400"
-                />
-              </div>
-              <button
-                onClick={saveClientName}
-                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-400"
-              >
-                <Save className="w-4 h-4" /> Guardar cliente
-              </button>
-            </div>
-          </div>
-        )}
+        {message && <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{message}</div>}
 
         <div className="flex flex-wrap gap-2">
           {profiles.map((profile) => (
@@ -962,9 +772,7 @@ function App() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold">Perfil y objetivos</h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Estos datos se usan como base. Quedan bloqueados salvo que quieras editarlos.
-                    </p>
+                    <p className="mt-1 text-sm text-slate-400">Estos datos se usan como base. Quedan bloqueados salvo que quieras editarlos.</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -1022,9 +830,7 @@ function App() {
 
               <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
                 <h2 className="text-2xl font-bold">Registro diario</h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  Añade peso, pasos y comentarios para alimentar el histórico y el informe.
-                </p>
+                <p className="mt-1 text-sm text-slate-400">Añade peso, pasos y comentarios para alimentar el histórico y el informe.</p>
                 <div className="mt-6 grid md:grid-cols-2 gap-4">
                   <Field label="Fecha">
                     <input
@@ -1061,15 +867,7 @@ function App() {
                     {editingEntryDate ? "Actualizar registro" : "Guardar registro"}
                   </button>
                   <button
-                    onClick={() =>
-                      latest &&
-                      setEntryForm({
-                        date: todayISO(),
-                        weight: latest.weight,
-                        steps: latest.steps,
-                        comment: latest.comment || "",
-                      })
-                    }
+                    onClick={() => latest && setEntryForm({ date: todayISO(), weight: latest.weight, steps: latest.steps, comment: latest.comment || "" })}
                     className="rounded-2xl bg-slate-800 px-5 py-3 font-semibold hover:bg-slate-700"
                   >
                     Cargar último registro
@@ -1097,13 +895,9 @@ function App() {
             <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg">
               <h2 className="text-2xl font-bold">Cuerpo estimado y comentarios</h2>
               <div className="mt-3 space-y-1 text-slate-200 leading-7">
-                <div>
-                  Estado actual: {bodyInfo ? `${latestWeight.toFixed(2)} kg con IMC ${bodyInfo.bmi} (${bodyInfo.category} · ${bodyInfo.physique}).` : "Sin datos suficientes."}
-                </div>
+                <div>Estado actual: {bodyInfo ? `${latestWeight.toFixed(2)} kg con IMC ${bodyInfo.bmi} (${bodyInfo.category} · ${bodyInfo.physique}).` : "Sin datos suficientes."}</div>
                 <div>Altura registrada: {currentProfile.heightCm ? `${currentProfile.heightCm} cm.` : "No configurada."}</div>
-                <div>
-                  Objetivo configurado: {targetBodyInfo ? `${Number(currentProfile.targetWeight).toFixed(2)} kg con IMC estimado ${targetBodyInfo.bmi} (${targetBodyInfo.category} · ${targetBodyInfo.physique}).` : "Sin objetivo configurado."}
-                </div>
+                <div>Objetivo configurado: {targetBodyInfo ? `${Number(currentProfile.targetWeight).toFixed(2)} kg con IMC estimado ${targetBodyInfo.bmi} (${targetBodyInfo.category} · ${targetBodyInfo.physique}).` : "Sin objetivo configurado."}</div>
                 <div>Progreso estimado: {progress === null ? "Sin cálculo." : `${progress}% del recorrido objetivo completado.`}</div>
               </div>
               <div className="mt-5">
@@ -1116,9 +910,7 @@ function App() {
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold">Evolución</h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Puedes visualizar peso, pasos o ambos y agrupar por día, semana, mes o año.
-                    </p>
+                    <p className="mt-1 text-sm text-slate-400">Puedes visualizar peso, pasos o ambos y agrupar por día, semana, mes o año.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <select value={chartMetric} onChange={(e) => setChartMetric(e.target.value)} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3">
@@ -1147,14 +939,7 @@ function App() {
                         <XAxis dataKey="label" stroke="#94a3b8" />
                         <YAxis yAxisId="left" stroke="#94a3b8" />
                         {chartMetric === "Ambos" && <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" />}
-                        <Tooltip
-                          contentStyle={{
-                            background: "#0f172a",
-                            border: "1px solid #334155",
-                            borderRadius: 16,
-                            color: "#e2e8f0",
-                          }}
-                        />
+                        <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 16, color: "#e2e8f0" }} />
                         <Legend />
                         {chartMetric !== "Pasos" && (
                           <Line yAxisId="left" type="monotone" dataKey="weight" name="Peso" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4 }} />
@@ -1165,18 +950,14 @@ function App() {
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full grid place-items-center text-slate-400">
-                      Todavía no hay suficientes datos para construir la gráfica.
-                    </div>
+                    <div className="h-full grid place-items-center text-slate-400">Todavía no hay suficientes datos para construir la gráfica.</div>
                   )}
                 </div>
               </div>
 
               <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg overflow-hidden">
                 <h2 className="text-2xl font-bold">Histórico y comparativas</h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  Puedes editar o eliminar cada línea. Los comentarios también se incorporan al informe.
-                </p>
+                <p className="mt-1 text-sm text-slate-400">Puedes editar o eliminar cada línea. Los comentarios también se incorporan al informe.</p>
 
                 <div className="mt-5 overflow-auto rounded-2xl border border-slate-700">
                   <table className="min-w-full text-sm">
@@ -1190,39 +971,28 @@ function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedEntriesMemo.length ? (
-                        sortEntries(currentProfile.entries)
-                          .slice()
-                          .reverse()
-                          .map((row, index, arr) => {
-                            const previous = arr[index + 1] || null;
-                            const delta = previous ? parseNum(row.weight) - parseNum(previous.weight) : null;
-                            return (
-                              <tr key={row.date} className="border-t border-slate-800 bg-slate-900/40">
-                                <td className="px-3 py-3">{row.date}</td>
-                                <td className="px-3 py-3 whitespace-nowrap">
-                                  <span className={deltaColor(delta)}>{Number(row.weight).toFixed(2)} kg</span>
-                                </td>
-                                <td className="px-3 py-3">{row.steps}</td>
-                                <td className="px-3 py-3 min-w-[240px] text-slate-300">{row.comment || "-"}</td>
-                                <td className="px-3 py-3">
-                                  <div className="flex gap-2">
-                                    <button onClick={() => loadEntry(row)} className="rounded-xl bg-slate-800 p-2 hover:bg-slate-700">
-                                      <Pencil className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => removeEntry(row.date)} className="rounded-xl bg-red-500/20 p-2 text-red-300 hover:bg-red-500/30">
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })
-                      ) : (
+                      {sortedEntriesMemo.length ? sortEntries(currentProfile.entries).slice().reverse().map((row, index, arr) => {
+                        const previous = arr[index + 1] || null;
+                        const delta = previous ? parseNum(row.weight) - parseNum(previous.weight) : null;
+                        return (
+                          <tr key={row.date} className="border-t border-slate-800 bg-slate-900/40">
+                            <td className="px-3 py-3">{row.date}</td>
+                            <td className="px-3 py-3 whitespace-nowrap">
+                              <span className={deltaColor(delta)}>{Number(row.weight).toFixed(2)} kg</span>
+                            </td>
+                            <td className="px-3 py-3">{row.steps}</td>
+                            <td className="px-3 py-3 min-w-[240px] text-slate-300">{row.comment || "-"}</td>
+                            <td className="px-3 py-3">
+                              <div className="flex gap-2">
+                                <button onClick={() => loadEntry(row)} className="rounded-xl bg-slate-800 p-2 hover:bg-slate-700"><Pencil className="w-4 h-4" /></button>
+                                <button onClick={() => removeEntry(row.date)} className="rounded-xl bg-red-500/20 p-2 text-red-300 hover:bg-red-500/30"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }) : (
                         <tr>
-                          <td colSpan={5} className="px-3 py-8 text-center text-slate-400">
-                            Todavía no hay registros.
-                          </td>
+                          <td colSpan={5} className="px-3 py-8 text-center text-slate-400">Todavía no hay registros.</td>
                         </tr>
                       )}
                     </tbody>
@@ -1233,6 +1003,15 @@ function App() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-slate-300 mb-2">{label}</label>
+      {children}
     </div>
   );
 }
